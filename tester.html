@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgendApp - Front-End Testing Suite</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #10b981;
+      --success-hover: #059669;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --warning: #f59e0b;
+      --slate-800: #1e293b;
+      --bg: #f1f5f9;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 24px 16px; }
+    .container { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+    header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 12px; }
+    header h1 { font-size: 22px; color: var(--slate-800); }
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .badge-status { background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+    
+    .session-banner { background: #e0f2fe; border: 1px solid #bae6fd; color: #0369a1; padding: 10px 16px; border-radius: 8px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+    .session-banner a { color: #0284c7; font-weight: 700; text-decoration: none; }
+    .session-banner a:hover { text-decoration: underline; }
+
+    .card { background: var(--card-bg); border-radius: 10px; border: 1px solid var(--border); padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .card-header { margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    .card-header h2 { font-size: 16px; color: var(--slate-800); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    label { font-size: 13px; font-weight: 600; color: var(--slate-800); }
+    select, input { padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; background: #fff; outline: none; }
+    select:focus, input:focus { border-color: var(--primary); }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 9px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; gap: 6px; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-danger:hover { background: var(--danger-hover); }
+    .btn-warning { background: var(--warning); color: white; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--slate-800); }
+    .btn-outline:hover { background: var(--bg); }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+    .grid-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-top: 14px; }
+    .slot-pill { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 10px; border-radius: 6px; font-weight: 600; font-size: 13px; text-align: center; cursor: pointer; transition: 0.15s; }
+    .slot-pill:hover { background: var(--success); color: white; transform: translateY(-1px); }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: #f8fafc; color: var(--text-muted); font-weight: 600; }
+    
+    .tag { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .tag-CONFIRMADA { background: #dbeafe; color: #1e40af; }
+    .tag-PENDIENTE { background: #fef3c7; color: #92400e; }
+    .tag-CANCELADA { background: #fee2e2; color: #991b1b; }
+    .tag-COMPLETADA { background: #dcfce7; color: #166534; }
+
+    .terminal { background: var(--slate-800); color: #38bdf8; padding: 14px; border-radius: 8px; font-family: monospace; font-size: 12px; max-height: 180px; overflow-y: auto; white-space: pre-wrap; }
+    .empty-state { text-align: center; color: var(--text-muted); padding: 20px; font-size: 13px; }
+  </style>
+</head>
+<body onload="initApp()">
+
+  <div class="container">
+    
+    <header>
+      <div>
+        <h1>AgendApp Testing Sandbox</h1>
+        <small style="color: var(--text-muted);">Módulo de verificación e integración Front-End / API</small>
+      </div>
+      <div class="header-actions">
+        <span class="badge-status">● API Online (localhost:8000)</span>
+      </div>
+    </header>
+
+    <!-- BANNER DE IDENTIFICACIÓN DE SESIÓN -->
+    <div class="session-banner" id="sessionBanner">
+      <span id="sessionText">Cargando datos de sesión...</span>
+      <a href="cliente_dashboard.html">← Volver al Portal del Cliente</a>
+    </div>
+
+    <!-- 1. BÚSQUEDA Y RESERVA DE HORAS -->
+    <section class="card">
+      <div class="card-header">
+        <h2>1. Búsqueda y Reserva de Disponibilidad (Slots Libres)</h2>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="selectProfesional">Profesional:</label>
+          <select id="selectProfesional" onchange="onProfesionalChange()">
+            <option value="">Cargando profesionales...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="selectServicio">Servicio:</label>
+          <select id="selectServicio">
+            <option value="">Cargando servicios...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="inputFecha">Fecha de Reserva:</label>
+          <input type="date" id="inputFecha" value="2026-09-02">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="consultarDisponibilidad()">Consultar Horas Disponibles</button>
+
+      <div id="slotsWrapper" style="margin-top: 16px;">
+        <div class="empty-state">Selecciona los parámetros y pulsa "Consultar Horas Disponibles".</div>
+      </div>
+    </section>
+
+    <!-- 2. GESTIÓN DE CITAS -->
+    <section class="card">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>2. Citas Agendadas en el Sistema</h2>
+        <button class="btn btn-outline btn-sm" onclick="cargarCitas()">↻ Actualizar Lista</button>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Profesional</th>
+              <th>Cliente</th>
+              <th>Servicio</th>
+              <th>Fecha y Hora</th>
+              <th>Estado</th>
+              <th style="text-align: right;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tablaCitasBody">
+            <tr><td colspan="7" class="empty-state">Cargando registros...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 3. MONITOR DE TELEMETRÍA RAW -->
+    <section class="card">
+      <div class="card-header">
+        <h2>3. Payload de Respuesta de la API (JSON)</h2>
+      </div>
+      <pre class="terminal" id="consoleOutput">// Respuestas HTTP en tiempo real...</pre>
+    </section>
+
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:8000/api';
+    let listaProfesionales = [];
+    let listaServicios = [];
+
+    // --- GUARDIA DE SESIÓN Y OBTENCIÓN DEL USUARIO ACTIVO ---
+    const rawSesion = localStorage.getItem('agendapp_user');
+    if (!rawSesion) {
+      alert('Debes iniciar sesión para acceder a la reserva de citas.');
+      window.location.href = 'login.html';
+    }
+    const usuarioActivo = JSON.parse(rawSesion);
+
+    function logResponse(data) {
+      document.getElementById('consoleOutput').innerText = JSON.stringify(data, null, 2);
+    }
+
+    async function initApp() {
+      // Configurar banner con los datos del usuario conectado
+      const banner = document.getElementById('sessionText');
+      if (banner) {
+        banner.innerHTML = `Cliente autenticado: <strong>${usuarioActivo.nombre} ${usuarioActivo.apellido}</strong> (ID: ${usuarioActivo.id_usuario}) | Rol: <strong>${usuarioActivo.rol}</strong>`;
+      }
+
+      await Promise.all([cargarProfesionales(), cargarTodosLosServicios(), cargarCitas()]);
+    }
+
+    async function cargarProfesionales() {
+      const selectProf = document.getElementById('selectProfesional');
+      try {
+        const res = await fetch(`${API_BASE}/personal/profesionales/`);
+        const json = await res.json();
+        listaProfesionales = Array.isArray(json) ? json : (json.results || []);
+        
+        selectProf.innerHTML = '';
+        if (listaProfesionales.length === 0) {
+          selectProf.innerHTML = '<option value="">No hay profesionales disponibles</option>';
+          return;
+        }
+
+        listaProfesionales.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id_profesional;
+          opt.innerText = `${p.nombre_completo || 'Profesional #' + p.id_profesional} (${p.especialidad || 'General'})`;
+          selectProf.appendChild(opt);
+        });
+
+        onProfesionalChange();
+      } catch (err) {
+        selectProf.innerHTML = '<option value="">Error cargando profesionales</option>';
+        logResponse({ error: 'Fallo al cargar profesionales', detalle: err.toString() });
+      }
+    }
+
+    async function cargarTodosLosServicios() {
+      try {
+        const res = await fetch(`${API_BASE}/catalogos/servicios/`);
+        const json = await res.json();
+        listaServicios = Array.isArray(json) ? json : (json.results || []);
+        onProfesionalChange();
+      } catch (err) {
+        logResponse({ error: 'Fallo al cargar servicios generales', detalle: err.toString() });
+      }
+    }
+
+    function onProfesionalChange() {
+      const selectProf = document.getElementById('selectProfesional');
+      const selectServ = document.getElementById('selectServicio');
+      const profId = parseInt(selectProf.value);
+
+      const prof = listaProfesionales.find(p => p.id_profesional === profId);
+      selectServ.innerHTML = '';
+
+      let serviciosAMostrar = (prof && prof.servicios && prof.servicios.length > 0) 
+        ? prof.servicios 
+        : listaServicios;
+
+      if (serviciosAMostrar.length === 0) {
+        selectServ.innerHTML = '<option value="">No hay servicios disponibles</option>';
+        return;
+      }
+
+      serviciosAMostrar.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id_servicio;
+        const duracion = s.duracion_min || s.duracion_minutos || 30;
+        const precio = s.precio_base || s.precio || 0;
+        opt.innerText = `${s.nombre} (${duracion} min - $${Number(precio).toLocaleString('es-CL')})`;
+        selectServ.appendChild(opt);
+      });
+    }
+
+    async function consultarDisponibilidad() {
+      const profId = document.getElementById('selectProfesional').value;
+      const servId = document.getElementById('selectServicio').value;
+      const fecha = document.getElementById('inputFecha').value;
+      const wrapper = document.getElementById('slotsWrapper');
+
+      if (!profId || !servId || !fecha) {
+        alert('Por favor selecciona Profesional, Servicio y Fecha.');
+        return;
+      }
+
+      wrapper.innerHTML = '<div class="empty-state">Calculando bloques libres con el servidor...</div>';
+
+      try {
+        const res = await fetch(`${API_BASE}/reservas/disponibilidad/?profesional=${profId}&servicio=${servId}&fecha=${fecha}`);
+        const data = await res.json();
+        logResponse(data);
+
+        if (!data.slots || data.slots.length === 0) {
+          wrapper.innerHTML = `<div class="empty-state" style="color: var(--danger); font-weight: 600;">No hay turnos disponibles para esta fecha (${data.mensaje || 'Agenda completa o fuera de horario laboral'}).</div>`;
+          return;
+        }
+
+        let slotsHtml = `<div style="font-size:13px; margin-bottom:8px; color:var(--text-muted);">Turnos disponibles encontrados: <strong>${data.total_slots}</strong></div><div class="grid-slots">`;
+        data.slots.forEach(slot => {
+          slotsHtml += `<button class="slot-pill" onclick="reservarSlot('${slot.datetime_inicio}', '${slot.hora_inicio}')">${slot.hora_inicio} - ${slot.hora_fin}</button>`;
+        });
+        slotsHtml += `</div>`;
+        wrapper.innerHTML = slotsHtml;
+      } catch (err) {
+        wrapper.innerHTML = '<div class="empty-state" style="color: var(--danger);">Error conectando al servicio de reservas.</div>';
+        logResponse({ error: err.toString() });
+      }
+    }
+
+    // --- RESERVA VINCULADA DINÁMICAMENTE AL CLIENTE AUTENTICADO ---
+    async function reservarSlot(inicioIso, horaTexto) {
+      const profId = parseInt(document.getElementById('selectProfesional').value);
+      const servId = parseInt(document.getElementById('selectServicio').value);
+
+      if (!confirm(`¿Confirmar la cita para las ${horaTexto} a nombre de ${usuarioActivo.nombre} ${usuarioActivo.apellido}?`)) return;
+
+      const payload = {
+        id_sucursal: 1,
+        id_cliente: usuarioActivo.id_usuario, // <--- ID OBTENIDO DE LA SESIÓN ACTIVA
+        id_profesional: profId,
+        id_servicio: servId,
+        fecha_hora_inicio: inicioIso
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/reservas/citas/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        logResponse(data);
+
+        if (res.ok) {
+          alert(`¡Reserva creada exitosamente para ${usuarioActivo.nombre}!\nCita #${data.id_cita}`);
+          consultarDisponibilidad();
+          cargarCitas();
+        } else {
+          alert(`Error al reservar: ${JSON.stringify(data)}`);
+        }
+      } catch (err) {
+        logResponse({ error: err.toString() });
+      }
+    }
+
+    async function cargarCitas() {
+      const tbody = document.getElementById('tablaCitasBody');
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Actualizando...</td></tr>';
+
+      try {
+        const res = await fetch(`${API_BASE}/reservas/citas/`);
+        const json = await res.json();
+        const data = Array.isArray(json) ? json : (json.results || []);
+        logResponse({ citas_registradas: data });
+
+        if (!data || data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No hay citas registradas en el sistema.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = '';
+        data.forEach(c => {
+          const fechaFormat = new Date(c.fecha_hora_inicio).toLocaleString('es-CL', {
+            dateStyle: 'short',
+            timeStyle: 'short'
+          });
+
+          let btnAcciones = '-';
+          if (c.estado !== 'CANCELADA' && c.estado !== 'COMPLETADA') {
+            btnAcciones = `
+              <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                <button class="btn btn-warning btn-sm" onclick="completarCita(${c.id_cita})">Atender</button>
+                <button class="btn btn-danger btn-sm" onclick="cancelarCita(${c.id_cita})">Cancelar</button>
+              </div>
+            `;
+          }
+
+          tbody.innerHTML += `
+            <tr>
+              <td>#${c.id_cita}</td>
+              <td><strong>${c.profesional_nombre}</strong></td>
+              <td>${c.cliente_nombre}</td>
+              <td>${c.servicio_nombre}</td>
+              <td>${fechaFormat}</td>
+              <td><span class="tag tag-${c.estado}">${c.estado}</span></td>
+              <td style="text-align: right;">${btnAcciones}</td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state" style="color:var(--danger);">Error al obtener citas.</td></tr>';
+        logResponse({ error: err.toString() });
+      }
+    }
+
+    async function cancelarCita(id) {
+      if (!confirm(`¿Seguro que deseas cancelar la cita #${id}? El bloque se liberará de inmediato.`)) return;
+      try {
+        const res = await fetch(`${API_BASE}/reservas/citas/${id}/cancelar/`, { method: 'POST' });
+        const data = await res.json();
+        logResponse(data);
+        alert(data.mensaje || 'Cita cancelada.');
+        cargarCitas();
+        consultarDisponibilidad();
+      } catch (err) {
+        logResponse({ error: err.toString() });
+      }
+    }
+
+    async function completarCita(id) {
+      if (!confirm(`¿Marcar la cita #${id} como COMPLETADA/ATENDIDA?`)) return;
+      try {
+        const res = await fetch(`${API_BASE}/reservas/citas/${id}/completar/`, { method: 'POST' });
+        const data = await res.json();
+        logResponse(data);
+        alert(data.mensaje || 'Cita completada.');
+        cargarCitas();
+      } catch (err) {
+        logResponse({ error: err.toString() });
+      }
+    }
+  </script>
+</body>
+</html>

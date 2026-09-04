@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Iniciar Sesión - AgendApp</title>
+  <style>
+    :root {
+      --primary: #0066cc;
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --text: #1e293b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+    .card { background: var(--card); padding: 32px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; max-width: 380px; }
+    h2 { margin: 0 0 8px 0; color: var(--text); }
+    p { margin: 0 0 20px 0; color: #64748b; font-size: 14px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--text); }
+    input { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+    input:focus { outline: none; border-color: var(--primary); }
+    button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+    button:hover { background: #004c99; }
+    .alert { padding: 10px; border-radius: 6px; background: #fee2e2; color: var(--danger); font-size: 13px; margin-bottom: 16px; display: none; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>AgendApp</h2>
+    <p>Ingresa tus credenciales para acceder</p>
+
+    <div id="errorBox" class="alert"></div>
+
+    <form id="loginForm" onsubmit="ejecutarLogin(event)">
+      <div class="form-group">
+        <label>Correo Electrónico</label>
+        <input type="email" id="correo" value="gabff@agendapp.cl" required>
+      </div>
+
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="clave" placeholder="Ingresa tu contraseña" required>
+      </div>
+
+      <button type="submit" id="btnSubmit">Iniciar Sesión</button>
+    </form>
+  </div>
+
+  <script>
+    async function ejecutarLogin(e) {
+      e.preventDefault();
+      const correo = document.getElementById('correo').value;
+      const clave = document.getElementById('clave').value;
+      const errorBox = document.getElementById('errorBox');
+      const btn = document.getElementById('btnSubmit');
+
+      errorBox.style.display = 'none';
+      btn.disabled = true;
+      btn.innerText = 'Verificando...';
+
+      try {
+        const res = await fetch('http://localhost:8000/api/auth/login/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ correo, password: clave })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Credenciales inválidas');
+        }
+
+        // Guardar sesión en el navegador
+        localStorage.setItem('agendapp_user', JSON.stringify(data.usuario));
+
+        // Enrutamiento automático por rol
+        const rol = (data.usuario.rol || '').toUpperCase();
+        if (rol === 'CLIENTE') {
+          window.location.href = 'cliente_dashboard.html';
+        } else if (rol === 'PROFESIONAL') {
+          alert('Rol profesional detectado (Dashboard en construcción)');
+        } else if (rol === 'ADMINISTRADOR') {
+          alert('Rol administrador detectado (Dashboard en construcción)');
+        } else {
+          window.location.href = 'cliente_dashboard.html';
+        }
+
+      } catch (err) {
+        errorBox.innerText = err.message;
+        errorBox.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Iniciar Sesión';
+      }
+    }
+  </script>
+</body>
+</html>
+
+

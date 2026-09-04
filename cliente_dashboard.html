@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Portal del Cliente - AgendApp</title>
+  <style>
+    :root {
+      --primary: #0066cc;
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --text: #0f172a;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); margin: 0; color: var(--text); }
+    header { background: var(--card); border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; }
+    .user-info { display: flex; align-items: center; gap: 16px; font-size: 14px; }
+    .btn-logout { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .container { max-width: 900px; margin: 32px auto; padding: 0 16px; }
+    .card { background: var(--card); padding: 24px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; }
+    .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 16px; }
+    .menu-btn { background: var(--bg); border: 1px solid var(--border); padding: 20px; border-radius: 8px; text-align: center; text-decoration: none; color: var(--text); font-weight: bold; display: block; transition: all 0.2s; }
+    .menu-btn:hover { background: #eff6ff; border-color: var(--primary); color: var(--primary); }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+    th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); }
+    th { background: var(--bg); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div><strong>AgendApp</strong> | Portal de Clientes</div>
+    <div class="user-info">
+      <span id="userName">Cargando...</span>
+      <button class="btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2 style="margin: 0 0 8px 0;">Menú Principal</h2>
+      <p style="color: #64748b; font-size: 14px; margin: 0;">¿Qué deseas hacer hoy?</p>
+      
+      <div class="menu-grid">
+        <a href="tester.html" class="menu-btn">📅 Reservar una Cita</a>
+        <a href="#mis-citas" class="menu-btn">📋 Ver Mis Reservas</a>
+      </div>
+    </div>
+
+    <div class="card" id="mis-citas">
+      <h3 style="margin: 0 0 16px 0;">Mis Citas Registradas</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>ID Cita</th>
+            <th>Servicio</th>
+            <th>Profesional</th>
+            <th>Fecha y Hora</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="citasBody">
+          <tr><td colspan="5" style="text-align:center; color:#64748b;">Cargando tus citas...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // 1. Validar que el usuario inició sesión
+    const sesion = localStorage.getItem('agendapp_user');
+    if (!sesion) {
+      window.location.href = 'login.html';
+    }
+
+    const usuario = JSON.parse(sesion);
+    document.getElementById('userName').innerText = `👤 ${usuario.nombre} ${usuario.apellido} (${usuario.rol})`;
+
+    // 2. Cargar citas del cliente
+async function cargarCitas() {
+      const tbody = document.getElementById('citasBody');
+      const clienteId = usuario.id_usuario || usuario.id;
+
+      try {
+        const res = await fetch(`http://localhost:8000/api/reservas/citas/?cliente=${clienteId}`);
+        const data = await res.json();
+        const citas = Array.isArray(data) ? data : (data.results || []);
+
+        if (citas.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b; padding:20px;">No tienes citas activas.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = citas.map(c => {
+          const srv = c.servicio_nombre || c.nombre_servicio || `Servicio #${c.id_servicio || ''}`;
+          const prof = c.profesional_nombre || c.nombre_profesional || `Profesional #${c.id_profesional || ''}`;
+          const fechaStr = c.fecha_hora_inicio ? c.fecha_hora_inicio.replace('T', ' ').substring(0, 16) : '-';
+          const est = c.estado || 'CONFIRMADA';
+          const citaId = c.id_cita || c.id;
+
+          return `
+            <tr>
+              <td><strong>#${citaId}</strong></td>
+              <td>${srv}</td>
+              <td>${prof}</td>
+              <td>${fechaStr}</td>
+              <td><span style="color: #16a34a; font-weight: bold; background: #dcfce7; padding: 3px 8px; border-radius: 4px; font-size: 12px;">${est}</span></td>
+            </tr>
+          `;
+        }).join('');
+
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#ef4444; padding:20px;">Error al cargar tus citas: ${err.message}</td></tr>`;
+      }
+    }
+
+    function cerrarSesion() {
+      localStorage.removeItem('agendapp_user');
+      window.location.href = 'login.html';
+    }
+
+    cargarCitas();
+  </script>
+</body>
+</html>

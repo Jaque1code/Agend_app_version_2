@@ -1,0 +1,27 @@
+# Entornos virtuales Python
+venv/
+.venv/
+env/
+
+# Archivos compilados de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Datos y volúmenes de PostgreSQL en Docker
+pgdata/
+postgres_data/
+*.sqlite3
+
+# Variables de entorno secretas (opcional si manejas un .env de pruebas compartido, coméntalo)
+# .env
+
+# Logs y temporales
+*.log
+.DS_Store
+Thumbs.db
+
+# Configuración de IDEs
+.idea/
+.vscode/*
+!.vscode/settings.json

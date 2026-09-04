@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Prueba de Catálogo y Servicios - AgendApp</title>
+  <style>
+    body { font-family: sans-serif; margin: 30px; background-color: #f4f6f8; }
+    .container { display: flex; gap: 20px; max-width: 1100px; margin: auto; }
+    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .w-40 { width: 40%; }
+    .w-60 { width: 60%; }
+    input, select, textarea { width: 100%; padding: 8px; margin: 6px 0; box-sizing: border-box; }
+    button { width: 100%; padding: 10px; background-color: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+    button:hover { background-color: #004c99; }
+    .service-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; margin-top: 15px; }
+    .service-card { border: 1px solid #ddd; border-radius: 6px; padding: 15px; background: #fafafa; position: relative; }
+    .service-card h3 { margin: 0 0 8px 0; color: #333; font-size: 16px; }
+    .badge { display: inline-block; padding: 3px 8px; font-size: 12px; background: #e3f2fd; color: #0d47a1; border-radius: 12px; font-weight: bold; }
+    .price { font-size: 18px; color: #2e7d32; font-weight: bold; margin: 10px 0 5px 0; }
+    .response { margin-top: 10px; padding: 10px; border-radius: 4px; font-size: 13px; display: none; }
+    .success { background-color: #e6ffed; border: 1px solid #acf2bd; color: #155724; }
+    .error { background-color: #ffeef0; border: 1px solid #f5c6cb; color: #721c24; }
+  </style>
+</head>
+<body>
+
+  <h1 style="text-align:center;">Validación de Catálogo y Servicios (RF08 / HU010)</h1>
+
+  <div class="container">
+    <!-- Panel Administrador: Crear Servicio -->
+    <div class="card w-40">
+      <h2>1. Crear Servicio (Admin)</h2>
+      <label>Sucursal:</label>
+      <select id="srv_sucursal">
+        <option value="1">Sucursal Principal (ID: 1)</option>
+      </select>
+      
+      <label>Nombre del Servicio:</label>
+      <input type="text" id="srv_nombre" placeholder="Ej. Corte y Barba Premium" value="Corte Degradé + Barba">
+
+      <label>Descripción:</label>
+      <textarea id="srv_descripcion" rows="2" placeholder="Detalles de la atención">Incluye lavado, navaja y toalla caliente.</textarea>
+
+      <label>Duración (Minutos):</label>
+      <input type="number" id="srv_duracion" value="45" min="5" step="5">
+
+      <label>Precio ($ CLP):</label>
+      <input type="number" id="srv_precio" value="18000" min="1000" step="500">
+
+      <button onclick="guardarServicio()">Guardar en Base de Datos</button>
+      <div id="res_form" class="response"></div>
+    </div>
+
+    <!-- Panel Cliente: Ver Catálogo -->
+    <div class="card w-60">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>2. Vista del Cliente (Catálogo)</h2>
+        <button onclick="cargarCatalogo()" style="width:auto; margin:0; padding: 6px 12px; font-size: 12px;">Actualizar</button>
+      </div>
+      <p style="color: #666; font-size: 13px;">Servicios disponibles consumidos en tiempo real desde PostgreSQL:</p>
+
+      <div id="catalogo_contenedor" class="service-grid">
+        <p style="color: #999;">Cargando catálogo...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:8000/api/catalogos';
+
+    // Cargar catálogo al abrir la página
+    window.onload = cargarCatalogo;
+
+    async function cargarCatalogo() {
+      const contenedor = document.getElementById('catalogo_contenedor');
+      try {
+        const res = await fetch(`${API_URL}/servicios/`);
+        const servicios = await res.json();
+
+        if (servicios.length === 0) {
+          contenedor.innerHTML = '<p style="color: #888;">No hay servicios registrados aún. Crea uno a la izquierda.</p>';
+          return;
+        }
+
+        contenedor.innerHTML = '';
+        servicios.forEach(s => {
+          contenedor.innerHTML += `
+            <div class="service-card">
+              <span class="badge">⏱️ ${s.duracion_minutos} min</span>
+              <h3>${s.nombre}</h3>
+              <p style="font-size: 12px; color: #666; margin: 4px 0;">${s.descripcion || 'Sin descripción'}</p>
+              <div class="price">$${Number(s.precio).toLocaleString('es-CL')}</div>
+              <small style="color: #999; font-size: 11px;">📍 ${s.nombre_sucursal || 'Sucursal Principal'}</small>
+            </div>
+          `;
+        });
+      } catch (err) {
+        contenedor.innerHTML = `<p style="color: red;">Error al conectar con la API: ${err.message}</p>`;
+      }
+    }
+
+    async function guardarServicio() {
+      const box = document.getElementById('res_form');
+      box.style.display = 'block';
+      box.className = 'response';
+
+      const payload = {
+        id_sucursal: parseInt(document.getElementById('srv_sucursal').value),
+        nombre: document.getElementById('srv_nombre').value,
+        descripcion: document.getElementById('srv_descripcion').value,
+        duracion_minutos: parseInt(document.getElementById('srv_duracion').value),
+        precio: parseFloat(document.getElementById('srv_precio').value)
+      };
+
+      try {
+        const res = await fetch(`${API_URL}/servicios/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          box.className = 'response success';
+          box.innerHTML = `<strong>Éxito (201 Created):</strong> Servicio "${data.nombre}" registrado con ID ${data.id_servicio}.`;
+          cargarCatalogo(); // Recarga automática de tarjetas
+        } else {
+          box.className = 'response error';
+          box.innerHTML = `<strong>Error (${res.status}):</strong><br>${JSON.stringify(data)}`;
+        }
+      } catch (err) {
+        box.className = 'response error';
+        box.innerHTML = `<strong>Fallo de conexión:</strong> ${err.message}`;
+      }
+    }
+  </script>
+</body>
+</html>
+
+
+
+
+
