@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from django.utils import timezone
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -33,6 +34,30 @@ class CitaViewSet(viewsets.ModelViewSet):
         if estado:
             queryset = queryset.filter(estado=estado)
         return queryset
+
+@action(detail=True, methods=['post'])
+def cancelar(self, request, pk=None):
+    cita = self.get_object()
+
+    if cita.estado in ['CANCELADA', 'ATENDIDA','COMPETADA']:
+        return Response(
+            {"error": f"No se puede cancelar una cita con estado '{cita.estado}'"},
+            status=status.HTTP_400_BD_REQUEST
+        )
+
+    cita.estado = 'CANCELADA'
+    cita.save(update_fields=['estado'])
+
+
+    return Response({
+        "success":True,
+        "mensaje": "cita cancelada con éxito. El horario ha sido liberado para otros clientes.",
+        "id_cita": cita.id_cita,
+        "estado": cita.estado 
+    }, status=status.HTTP_200_OK)
+
+
+
 
 
 class BloqueoAgendaViewSet(viewsets.ModelViewSet):

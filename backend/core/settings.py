@@ -86,10 +86,10 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME', 'agendapp_db'),
-        'USER': os.environ.get('DB_USER', 'admin_agendapp'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'password_segura_2026'),
-        'HOST': os.environ.get('DB_HOST', 'postgres_db'),
+        'NAME': os.environ.get('DB_NAME', 'agendapp_local'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'Jaque???'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
         'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
