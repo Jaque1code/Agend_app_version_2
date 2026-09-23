@@ -35,29 +35,29 @@ class CitaViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(estado=estado)
         return queryset
 
-@action(detail=True, methods=['post'])
-def cancelar(self, request, pk=None):
-    cita = self.get_object()
+    # =========================================================================
+    # ACCIÓN DE CANCELACIÓN DINÁMICA (Dentro de CitaViewSet)
+    # Endpoint: POST /api/citas/<id>/cancelar/
+    # =========================================================================
+    @action(detail=True, methods=['post'])
+    def cancelar(self, request, pk=None):
+        cita = self.get_object()
 
-    if cita.estado in ['CANCELADA', 'ATENDIDA','COMPETADA']:
-        return Response(
-            {"error": f"No se puede cancelar una cita con estado '{cita.estado}'"},
-            status=status.HTTP_400_BD_REQUEST
-        )
+        if cita.estado in ['CANCELADA', 'ATENDIDA', 'COMPLETADA']:
+            return Response(
+                {"error": f"No se puede cancelar una cita con estado '{cita.estado}'."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-    cita.estado = 'CANCELADA'
-    cita.save(update_fields=['estado'])
+        cita.estado = 'CANCELADA'
+        cita.save(update_fields=['estado'])
 
-
-    return Response({
-        "success":True,
-        "mensaje": "cita cancelada con éxito. El horario ha sido liberado para otros clientes.",
-        "id_cita": cita.id_cita,
-        "estado": cita.estado 
-    }, status=status.HTTP_200_OK)
-
-
-
+        return Response({
+            "success": True,
+            "mensaje": "Cita cancelada con éxito. El horario ha sido liberado para otros clientes.",
+            "id_cita": cita.id_cita,
+            "estado": cita.estado 
+        }, status=status.HTTP_200_OK)
 
 
 class BloqueoAgendaViewSet(viewsets.ModelViewSet):
@@ -89,16 +89,15 @@ class DisponibilidadView(APIView):
         except ValueError:
             return Response({"error": "Formato de fecha inválido. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 1. Obtener Servicio y su duración
+        # 1. Obtener Servicio y su duración (columna real: duracion_min)
         try:
             servicio = Servicio.objects.get(id_servicio=servicio_id, activo=True)
         except Servicio.DoesNotExist:
             return Response({"error": "Servicio no encontrado o inactivo."}, status=status.HTTP_404_NOT_FOUND)
 
-        duracion_min = servicio.duracion_minutos
+        duracion_min = servicio.duracion_min
 
         # 2. Obtener día de la semana (0=Domingo, 1=Lunes, ..., 6=Sábado en PostgreSQL)
-        # Python weekday(): 0=Lunes, 6=Domingo -> Conversión:
         dia_postgres = (fecha_consulta.weekday() + 1) % 7
 
         # 3. Consultar horario laboral del profesional para ese día
@@ -125,7 +124,7 @@ class DisponibilidadView(APIView):
 
         slots_disponibles = []
 
-        # 5. Generar y evaluar bloques
+        # 5. Generar y evaluar bloques dinámicos
         for h in horarios:
             cursor = timezone.make_aware(datetime.combine(fecha_consulta, h.hora_inicio), tz)
             limite = timezone.make_aware(datetime.combine(fecha_consulta, h.hora_fin), tz)
@@ -133,13 +132,13 @@ class DisponibilidadView(APIView):
             while cursor + timedelta(minutes=duracion_min) <= limite:
                 slot_fin = cursor + timedelta(minutes=duracion_min)
 
-                # Verificar si solapa con alguna cita existente
+                # Verificar colisión con citas activas
                 choca_cita = any(
                     (cursor < c.fecha_hora_fin and slot_fin > c.fecha_hora_inicio)
                     for c in citas_ocupadas
                 )
 
-                # Verificar si solapa con algún bloqueo
+                # Verificar colisión con bloqueos
                 choca_bloqueo = any(
                     (cursor < b.fecha_fin and slot_fin > b.fecha_inicio)
                     for b in bloqueos
@@ -153,8 +152,8 @@ class DisponibilidadView(APIView):
                         "datetime_fin": slot_fin.isoformat()
                     })
 
-                # Siguiente slot cada 30 min (o paso configurable)
-                cursor += timedelta(minutes=30)
+                # Paso de avance del cursor (30 min o 15 min para servicios cortos)
+                cursor += timedelta(minutes=15)
 
         return Response({
             "profesional_id": profesional_id,
