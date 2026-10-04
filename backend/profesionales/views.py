@@ -2,6 +2,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from django.db import transaction
+
 from .models import Profesional, HorarioDisponible, ProfesionalServicio
 from .serializers import (
     ProfesionalSerializer,
@@ -9,6 +11,7 @@ from .serializers import (
     AsignarServiciosSerializer
 )
 from catalogos.models import Servicio
+
 
 class ProfesionalViewSet(viewsets.ModelViewSet):
     # Traer todos los profesionales sin filtrar por texto rígido de estado laboral
@@ -33,6 +36,28 @@ class ProfesionalViewSet(viewsets.ModelViewSet):
             except Exception:
                 pass
         return queryset.distinct()
+
+    # Eliminación en cascada segura a nivel de aplicación (PostgreSQL unmanaged tables)
+    def destroy(self, request, *args, **kwargs):
+        profesional = self.get_object()
+        with transaction.atomic():
+            # 1. Limpiar horarios del profesional
+            HorarioDisponible.objects.filter(id_profesional=profesional).delete()
+            
+            # 2. Limpiar servicios asociados
+            ProfesionalServicio.objects.filter(id_profesional=profesional).delete()
+            
+            # 3. Referenciar usuario vinculado antes de borrar el registro
+            usuario = profesional.id_usuario
+            
+            # 4. Eliminar el registro del profesional
+            profesional.delete()
+            
+            # 5. Eliminar la cuenta de usuario de autenticación si existe
+            if usuario:
+                usuario.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     # Endpoint personalizado: POST /api/personal/profesionales/{id}/asignar_servicios/
     @action(detail=True, methods=['post'], serializer_class=AsignarServiciosSerializer)

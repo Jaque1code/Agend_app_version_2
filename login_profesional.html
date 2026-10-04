@@ -34,8 +34,8 @@
   </div>
 
   <script>
-async function login() {
-  const correo = document.getElementById('correo').value;
+  async function login() {
+  const correo = document.getElementById('correo').value.trim();
   const password = document.getElementById('password').value;
   const errorMsg = document.getElementById('error-msg');
   errorMsg.style.display = 'none';
@@ -47,7 +47,7 @@ async function login() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         correo: correo, 
-        clave: password 
+        password: password 
       })
     });
     
@@ -55,24 +55,36 @@ async function login() {
 
     if (res.ok) {
       // Verificamos que sea un profesional
-      if (data.usuario.rol !== 'PROFESIONAL' && data.usuario.id_rol !== 2) {
-        errorMsg.textContent = 'Acceso denegado: Esta cuenta no pertenece a un profesional.';
+      const user  = data.usuario || data.user || data;
+      
+
+      const rolTexto = (user.rol || user.tipo_rol || '').toString().toUpperCase();
+      const rolId = user.id_rol || (user.rol && user.rol.id) || null;
+      const esPro = rolTexto.includes('PROFESIONAL') || rolId === 2;
+
+      if (!esPro) {
+        errorMsg.textContent = 'Acceso denegado : Esta cueta no pertenece a un profesional.';
         errorMsg.style.display = 'block';
         return;
       }
+      
+      user.id_profesional = user.id_profesional || user.profesional_id || user.id || user.id_usuario;
+      
 
-      // Guardamos la sesión y redirigimos al dashboard
-      localStorage.setItem('usuario', JSON.stringify(data.usuario));
+      if (data.access) localStorage.setItem('token_access', data.access);
+      localStorage.setItem('usuario', JSON.stringify(user));
+      localStorage.setItem('profesional', JSON.stringify(user));
+
       window.location.href = 'dashboard-profesional.html';
     } else {
-      errorMsg.textContent = data.error || 'Credenciales no válidas.';
+      errorMsg.textContent = data.detail || data.error || data.mensaje || 'Credencilaes no válidas.';
       errorMsg.style.display = 'block';
     }
   } catch (err) {
-    errorMsg.textContent = 'Error de conexión con el backend.';
+    errorMsg.textContent = 'Error de conexión en el backend (http://127.0.0.1:8000).';
     errorMsg.style.display = 'block';
+   }
   }
-}
   </script>
 </body>
 </html>

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acceso al Sistema - AgendApp</title>
+  <!-- Fuente Inter / Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-dark: #0f141c;
+      --card-bg: #161e29;
+      --card-border: #263344;
+      --accent-green: #0df2a6;
+      --accent-green-hover: #0ac787;
+      --text-main: #f3f4f6;
+      --text-muted: #94a3b8;
+      --input-bg: #0b0f15;
+      --input-border: #2d3b4e;
+      --admin-badge: #f59e0b;
+      --pro-badge: #38bdf8;
+      --client-badge: #0df2a6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(13, 242, 166, 0.07) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(56, 189, 248, 0.05) 0%, transparent 40%);
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 520px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 40px 32px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .brand-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .brand-header .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .brand-header .logo-badge span {
+      color: var(--accent-green);
+    }
+
+    .brand-header p {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* Selector de Roles */
+    .role-selector {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 28px;
+      background: var(--input-bg);
+      padding: 6px;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+    }
+
+    .role-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 12px 8px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.25s ease;
+    }
+
+    .role-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+    }
+
+    .role-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    /* Estados Activos por Rol */
+    .role-btn.active[data-role="cliente"] {
+      background: rgba(13, 242, 166, 0.12);
+      color: var(--client-badge);
+      border: 1px solid rgba(13, 242, 166, 0.3);
+    }
+
+    .role-btn.active[data-role="profesional"] {
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--pro-badge);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .role-btn.active[data-role="admin"] {
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--admin-badge);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    /* Formulario */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .form-control {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      color: var(--text-main);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+      border-color: var(--accent-green);
+    }
+
+    .role-hint {
+      font-size: 12px;
+      margin-top: 6px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Botón de Envío */
+    .submit-btn {
+      width: 100%;
+      background: var(--accent-green);
+      color: #05140f;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 10px;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    .submit-btn:hover {
+      background: var(--accent-green-hover);
+    }
+
+    .submit-btn:active {
+      transform: scale(0.99);
+    }
+
+    /* Enlace alternativo para Admin Django nativo */
+    .admin-direct-link {
+      display: none;
+      text-align: center;
+      margin-top: 16px;
+      font-size: 13px;
+    }
+
+    .admin-direct-link a {
+      color: var(--admin-badge);
+      text-decoration: none;
+    }
+
+    .admin-direct-link a:hover {
+      text-decoration: underline;
+    }
+
+    /* Mensaje de respuesta */
+    .status-msg {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+    }
+    .status-msg.error {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+    .status-msg.success {
+      background: rgba(13, 242, 166, 0.15);
+      border: 1px solid rgba(13, 242, 166, 0.3);
+      color: #86efac;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <div class="brand-header">
+      <div class="logo-badge">
+        <span>Agend</span>App
+      </div>
+      <p id="portal-subtitle">Selecciona tu perfil para ingresar al sistema</p>
+    </div>
+
+    <!-- 3 Botones Principales para Selección de Rol -->
+    <div class="role-selector">
+      <button type="button" class="role-btn active" data-role="cliente" onclick="selectRole('cliente')">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        Cliente
+      </button>
+
+      <button type="button" class="role-btn" data-role="profesional" onclick="selectRole('profesional')">
+        <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+        Profesional
+      </button>
+
+      <button type="button" class="role-btn" data-role="admin" onclick="selectRole('admin')">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+        Administrador
+      </button>
+    </div>
+
+    <!-- Formulario Unificado Dinámico -->
+    <form id="loginForm" onsubmit="handleLogin(event)" autocomplete="off">
+      <div class="form-group">
+        <label id="emailLabel" for="correo">Correo Electrónico</label>
+        <div class="input-wrapper">
+          <input type="email" id="correo" class="form-control" placeholder="ejemplo@correo.cl" autocomplete="off" required autocomplete="email">
+        </div>
+        <p class="role-hint" id="roleHint">Portal de clientes: Agenda tus horas y consulta el historial de tus citas.</p>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Contraseña</label>
+        <div class="input-wrapper">
+          <input type="password" id="password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">
+        Iniciar Sesión como Cliente
+      </button>
+
+      <div class="admin-direct-link" id="adminDirectLink">
+<p>¿Prefieres el panel nativo de base de datos? <a href="http://127.0.0.1:8000/admin/" target="_blank">Ir a Django Admin →</a></p>
+      </div>
+
+      <div id="statusMsg" class="status-msg"></div>
+    </form>
+  </div>
+
+  <script>
+    let currentRole = 'cliente';
+
+    // Configuración de rutas según la estructura de tu proyecto
+    const roleConfig = {
+      cliente: {
+        title: 'Portal Clientes',
+        hint: 'Acceso para usuarios: reserva tus servicios y gestiona tus citas programadas.',
+        placeholder: 'cliente@ejemplo.cl',
+        btnText: 'Iniciar Sesión como Cliente',
+        redirectUrl: 'cliente_dashboard.html' //  página de catálogo/reserva
+      },
+      profesional: {
+        title: 'Acceso Especialistas y Barberos',
+        hint: 'Acceso al dashboard operativo: visualiza tu agenda diaria y actualiza estados de citas.',
+        placeholder: 'carlos.valenzuela@agendapp.cl',
+        btnText: 'Iniciar Sesión como Profesional',
+        redirectUrl: 'dashboard-profesional.html' // Tu dashboard de profesional
+      },
+      admin: {
+        title: 'Panel de Administración y Control',
+        hint: 'Gestión global de sucursales, precios, personal y base de datos.',
+        placeholder: 'fjaque330@gmail.com',
+        btnText: 'Iniciar Sesión como Administrador',
+        redirectUrl: 'admin_dashboard.html' // Tu dashboard de administrador 
+      }
+    };
+
+    function selectRole(role) {
+      currentRole = role;
+      
+      document.querySelectorAll('.role-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.role === role);
+      });
+
+      const conf = roleConfig[role];
+      document.getElementById('portal-subtitle').textContent = conf.title;
+      document.getElementById('roleHint').textContent = conf.hint;
+      document.getElementById('correo').placeholder = conf.placeholder;
+      document.getElementById('submitBtn').textContent = conf.btnText;
+
+      const adminLink = document.getElementById('adminDirectLink');
+      adminLink.style.display = (role === 'admin') ? 'block' : 'none';
+      
+      hideMessage();
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      
+      const correo = document.getElementById('correo').value.trim();
+      const password = document.getElementById('password').value;
+      const submitBtn = document.getElementById('submitBtn');
+      
+      if (!correo || !password) {
+        showMessage('Por favor ingresa tu correo y contraseña.', 'error');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Autenticando...';
+      hideMessage();
+
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/auth/login/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ correo, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Extraer usuario y tokens devueltos por el backend
+          const user = data.user || data.usuario || data;
+          const tokenAccess = data.access || data.token;
+          const tokenRefresh = data.refresh;
+
+          // 1. Guardar tokens JWT estándar
+          if (tokenAccess) localStorage.setItem('token_access', tokenAccess);
+          if (tokenRefresh) localStorage.setItem('token_refresh', tokenRefresh);
+
+          // 2. Normalizar rol del usuario según los datos reales de PostgreSQL/Neon
+          let userRole = 'CLIENTE';
+          const rawRol = (user.rol || user.tipo_rol || '').toString().toUpperCase();
+          const rolId = user.id_rol || (user.rol && user.rol.id) || (typeof user.rol === 'number' ? user.rol : null);
+
+          if (rawRol.includes('ADMIN') || rolId === 1 || user.is_superuser || user.is_staff) {
+            userRole = 'ADMIN';
+          } else if (rawRol.includes('PROFESIONAL') || rolId === 2) {
+            userRole = 'PROFESIONAL';
+          } else {
+            userRole = 'CLIENTE';
+          }
+
+          // 3. Estructurar payload de sesión compatible con tu dashboard-profesional.html
+          const sessionPayload = {
+            id_usuario: user.id || user.id_usuario,
+            id_profesional: user.id_profesional || user.profesional_id || user.id || user.id_usuario,
+            nombre: user.nombre || user.first_name || '',
+            apellido: user.apellido || user.last_name || '',
+            correo: user.correo || user.email,
+            especialidad: user.especialidad || 'Especialista',
+            rol: userRole,
+            id_rol: (userRole === 'ADMIN' ? 1 : (userRole === 'PROFESIONAL' ? 2 : 4))
+          };
+
+          // Guardamos bajo 'usuario' y 'profesional' para que el dashboard lo lea de inmediato
+          localStorage.setItem('usuario', JSON.stringify(sessionPayload));
+          localStorage.setItem('profesional', JSON.stringify(sessionPayload));
+
+          // 4. Feedback visual y redirección
+          showMessage('¡Acceso concedido! Redirigiendo...', 'success');
+
+          setTimeout(() => {
+            if (userRole === 'ADMIN') {
+              window.location.href = roleConfig.admin.redirectUrl;
+            } else if (userRole === 'PROFESIONAL') {
+              window.location.href = roleConfig.profesional.redirectUrl;
+            } else {
+              window.location.href = roleConfig.cliente.redirectUrl;
+            }
+          }, 800);
+
+        } else {
+          const errorDetail = data.detail || data.error || data.mensaje || 'Credenciales inválidas. Verifica tu correo y contraseña.';
+          showMessage(errorDetail, 'error');
+        }
+      } catch (err) {
+        showMessage('Error al conectar con el servidor backend (http://127.0.0.1:8000). Revisa que Django esté corriendo.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = roleConfig[currentRole].btnText;
+      }
+    }
+
+    function showMessage(text, type) {
+      const msg = document.getElementById('statusMsg');
+      msg.textContent = text;
+      msg.className = `status-msg ${type}`;
+      msg.style.display = 'block';
+    }
+
+    function hideMessage() {
+      const msg = document.getElementById('statusMsg');
+      msg.style.display = 'none';
+    }
+
+    window.addEventListener('load', () => {
+    const correo = document.getElementById('correo');
+    if (correo) correo.value = '';
+    });
+  </script>
+</body>
+</html>

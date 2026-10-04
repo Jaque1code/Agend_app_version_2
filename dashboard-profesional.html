@@ -42,20 +42,21 @@
     <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
   </div>
 
-  <div class="stats-grid">
-    <div class="stat-card">
-      <h3>Total Citas</h3>
-      <div class="val" id="stat-total">0</div>
+  <!-- Métricas KPI -->
+  <section class="kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    <div class="kpi-card">
+      <h3 style="font-size: 13px; color: #94a3b8; text-transform: uppercase;">Total Citas</h3>
+      <div class="number" id="kpi-total" style="font-size: 28px; font-weight: 700;">0</div>
     </div>
-    <div class="stat-card">
-      <h3>Confirmadas</h3>
-      <div class="val" id="stat-confirmadas" style="color: #4ade80;">0</div>
+    <div class="kpi-card">
+      <h3 style="font-size: 13px; color: #94a3b8; text-transform: uppercase;">Confirmadas</h3>
+      <div class="number" id="kpi-confirmadas" style="font-size: 28px; font-weight: 700; color: #0df2a6;">0</div>
     </div>
-    <div class="stat-card">
-      <h3>Pendientes</h3>
-      <div class="val" id="stat-pendientes" style="color: #facc15;">0</div>
+    <div class="kpi-card">
+      <h3 style="font-size: 13px; color: #94a3b8; text-transform: uppercase;">Pendientes</h3>
+      <div class="number" id="kpi-pendientes" style="font-size: 28px; font-weight: 700; color: #f59e0b;">0</div>
     </div>
-  </div>
+  </section>
 
   <div class="controls">
     <label>Filtrar por fecha:</label>
@@ -81,122 +82,184 @@
     </tbody>
   </table>
 
-  <script>
-  // 1. Obtener la sesión (soporta 'usuario' y 'profesional')
-  const rawSession = localStorage.getItem('usuario') || localStorage.getItem('profesional');
-  const session = JSON.parse(rawSession || '{}');
+ <script>
+  const API_BASE = 'http://127.0.0.1:8000/api';
 
-  // Si no hay sesión o no es profesional, redirigir
-  const esProfesional = (session.rol === 'PROFESIONAL' || session.id_rol === 2);
-  const idPro = session.id_profesional || session.id_usuario;
-
-  if (!rawSession || !esProfesional || !idPro) {
-    alert('Acceso restringido: Debes iniciar sesión con una cuenta de profesional.');
-    window.location.href = 'login-profesional.html';
+  // 1. Funciones expuestas inmediatamente en el objeto global
+  function logout() {
+    localStorage.clear();
+    window.location.href = 'login_roles.html';
   }
 
-  // 2. Desplegar información del encabezado
-  document.getElementById('pro-name').textContent = `${session.nombre || ''} ${session.apellido || ''}`.trim() || 'Profesional';
-  document.getElementById('pro-spec').textContent = `${session.especialidad || 'Especialista'} | ID Profesional: ${idPro}`;
+  function getHeaders() {
+    const token = localStorage.getItem('token_access');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+  }
 
-  // 3. Cargar las citas conectando a CitaViewSet
-  async function cargarCitas(limpiarFecha = false) {
-    if (limpiarFecha) {
-      document.getElementById('filtro-fecha').value = '';
+  // 2. Validación de sesión
+  const rawUser = localStorage.getItem('profesional') || 
+                  localStorage.getItem('usuario') || 
+                  localStorage.getItem('agendapp_user');
+
+  let sessionUser = null;
+  try {
+    sessionUser = rawUser ? JSON.parse(rawUser) : null;
+  } catch (e) {
+    sessionUser = null;
+  }
+
+  if (!sessionUser) {
+    alert('Acceso restringido: Inicia sesión con cuenta de profesional.');
+    window.location.href = 'login_roles.html';
+  }
+
+  // 3. Resolución de IDs (Usuario vs Profesional)
+  let idUsuarioActual = sessionUser?.id_usuario || sessionUser?.id || null;
+  let idProfesionalReal = sessionUser?.id_profesional || null;
+
+  async function resolverIdProfesional() {
+    // Si id_profesional es distinto de id_usuario o no viene definido, confirmar contra el backend
+    try {
+      const res = await fetch(`${API_BASE}/personal/profesionales/`, { headers: getHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        const lista = Array.isArray(data) ? data : (data.results || []);
+        const proEncontrado = lista.find(p => {
+          const userFk = p.id_usuario?.id_usuario || p.id_usuario || p.usuario_id;
+          return userFk == idUsuarioActual || p.correo === sessionUser?.correo;
+        });
+
+        if (proEncontrado) {
+          idProfesionalReal = proEncontrado.id_profesional ?? proEncontrado.id;
+          sessionUser.id_profesional = idProfesionalReal;
+          localStorage.setItem('profesional', JSON.stringify(sessionUser));
+        }
+      }
+    } catch (e) {
+      console.warn('No se pudo verificar el id_profesional remoto, usando id base:', e);
     }
-    const fecha = document.getElementById('filtro-fecha').value;
 
-    // Endpoint real registrado por DefaultRouter
-    let url = `http://127.0.0.1:8000/api/reservas/citas/?profesional=${idPro}`;
-    if (fecha) {
-      url += `&fecha=${fecha}`;
+    if (!idProfesionalReal) {
+      idProfesionalReal = idUsuarioActual;
+    }
+  }
+
+  // 4. Carga y renderizado de citas
+async function cargarCitas() {
+    const tbody = document.getElementById('citas-body') || document.querySelector('table tbody');
+    const headerTitle = document.querySelector('h1') || document.querySelector('.title-pro');
+    
+    const nombre = sessionUser?.nombre ? `${sessionUser.nombre} ${sessionUser.apellido || ''}`.trim() : 'Especialista';
+    if (headerTitle) {
+      headerTitle.textContent = `Bienvenido, ${nombre}`;
+    }
+
+    if (!idProfesionalReal) {
+      await resolverIdProfesional();
     }
 
     try {
-      const res = await fetch(url);
-      const citas = await res.json();
-      const tbody = document.getElementById('citas-body');
-      tbody.innerHTML = '';
-
-      let total = citas.length;
-      let conf = 0;
-      let pend = 0;
-
-      if (!citas || citas.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #64748b;">No hay citas para mostrar.</td></tr>';
-      } else {
-        citas.forEach(c => {
-          if (c.estado === 'CONFIRMADA') conf++;
-          if (c.estado === 'PENDIENTE') pend++;
-
-          // Formateo de fechas y horas según CitaReadSerializer
-          const fechaCompleta = c.fecha_hora_inicio || '';
-          const horaInicio = fechaCompleta.slice(11, 16);
-          const horaFin = (c.fecha_hora_fin || '').slice(11, 16);
-          const fechaCita = fechaCompleta.slice(0, 10);
-
-          const cliente = c.cliente_nombre || (c.id_cliente ? `${c.id_cliente.nombre} ${c.id_cliente.apellido}` : 'Cliente');
-          const telefono = c.cliente_telefono || (c.cliente && c.cliente.telefono) || (c.id_cliente && c.id_cliente.telefono) || 'Sin registro';
-          const servicio = c.servicio_nombre || (c.id_servicio ? c.id_servicio.nombre : 'Servicio');
-          const precioBruto = c.precio || c.precio_servicio || c.servicio_precio || (c.servicio && c.servicio.precio_base) || (c.id_servicio && c.id_servicio.precio_base) || 0;
- 
-          const precioNum = Number(precioBruto) || 0;
-
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><strong>${horaInicio} - ${horaFin}</strong></td>
-            <td>${fechaCita}</td>
-            <td>${cliente}</td>
-            <td>${telefono}</td>
-            <td>${servicio}</td>
-            <td>$${precioNum.toLocaleString('es-CL')}</td>
-            <td>
-              <select class="status-select" onchange="cambiarEstado(${c.id_cita}, this.value)">
-                <option value="">Acción...</option>
-                <option value="confirmar">CONFIRMAR</option>
-                <option value="completar">COMPLETAR</option>
-                <option value="cancelar">CANCELAR</option>
-              </select>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
+      // 1. Consulta al backend (prioriza filtro por profesional)
+      let res = await fetch(`${API_BASE}/reservas/citas/?profesional=${idProfesionalReal}&_t=${Date.now()}`, { 
+        headers: getHeaders() 
+      });
+      
+      if (!res.ok) {
+        res = await fetch(`${API_BASE}/reservas/citas/?_t=${Date.now()}`, { headers: getHeaders() });
       }
 
-      document.getElementById('stat-total').textContent = total;
-      document.getElementById('stat-confirmadas').textContent = conf;
-      document.getElementById('stat-pendientes').textContent = pend;
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const data = await res.json();
+      let citas = Array.isArray(data) ? data : (data.results || []);
+
+      // 2. Filtrado tolerante por profesional o usuario
+      citas = citas.filter(c => {
+        const fk = c.id_profesional?.id_profesional || c.id_profesional || c.profesional_id || c.profesional;
+        return fk == idProfesionalReal || fk == idUsuarioActual;
+      });
+
+      // 3. Cálculo de métricas
+      const total = citas.length;
+      const confirmadas = citas.filter(c => (c.estado || '').toUpperCase() === 'CONFIRMADA').length;
+      const pendientes = citas.filter(c => (c.estado || '').toUpperCase() === 'PENDIENTE').length;
+
+      // 4. Inyección robusta en las tarjetas KPI superiores
+      const elementsNumber = document.querySelectorAll('.number');
+      const kpiTotal = document.getElementById('kpi-total') || elementsNumber[0];
+      const kpiConf = document.getElementById('kpi-confirmadas') || elementsNumber[1];
+      const kpiPend = document.getElementById('kpi-pendientes') || elementsNumber[2];
+
+      if (kpiTotal) kpiTotal.textContent = total;
+      if (kpiConf) kpiConf.textContent = confirmadas;
+      if (kpiPend) kpiPend.textContent = pendientes;
+
+      if (!tbody) return;
+
+      if (citas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:18px;">No hay citas registradas para este especialista.</td></tr>';
+        return;
+      }
+
+      // 5. Renderizado de filas de la tabla
+      tbody.innerHTML = citas.map(c => {
+        const fechaHora = c.fecha_hora_inicio || '';
+        const fecha = fechaHora ? fechaHora.slice(0, 10) : '-';
+        const hora = fechaHora ? fechaHora.slice(11, 16) : '-';
+        const cliente = c.cliente_nombre || c.nombre_cliente || (c.id_cliente ? `Cliente #${c.id_cliente}` : 'Cliente');
+        const tel = c.telefono_cliente || c.cliente_telefono || '-';
+        const servicio = c.servicio_nombre || c.nombre_servicio || (c.id_servicio ? `Servicio #${c.id_servicio}` : 'Servicio');
+        const monto = c.precio ?? c.precio_total ?? c.monto ?? 0;
+        const estado = c.estado || 'CONFIRMADA';
+        const idCita = c.id_cita ?? c.id;
+
+        return `
+          <tr>
+            <td><strong>${hora}</strong></td>
+            <td>${fecha}</td>
+            <td>${cliente}</td>
+            <td>${tel}</td>
+            <td>${servicio}</td>
+            <td>$${Number(monto).toLocaleString('es-CL')}</td>
+            <td><span class="badge ${estado === 'CONFIRMADA' ? 'badge-success' : 'badge-danger'}">${estado}</span></td>
+            <td>
+              <button onclick="cambiarEstadoCita(${idCita}, 'COMPLETADA')" style="background:#0df2a6; border:none; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:bold; cursor:pointer;">Finalizar</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
     } catch (err) {
-      console.error('Error cargando citas:', err);
+      console.error('Error al cargar agenda del profesional:', err);
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#ef4444; padding:18px;">Error al cargar agenda: ${err.message}</td></tr>`;
+      }
     }
   }
 
-  // 4. Cambiar estado usando las acciones (@action) de CitaViewSet
-  async function cambiarEstado(idCita, accion) {
-    if (!accion) return;
+  async function cambiarEstadoCita(idCita, nuevoEstado) {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/reservas/citas/${idCita}/${accion}/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+      const res = await fetch(`${API_BASE}/reservas/citas/${idCita}/`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ estado: nuevoEstado })
       });
       if (res.ok) {
         cargarCitas();
       } else {
-        const error = await res.json();
-        alert(error.mensaje || 'Error al actualizar el estado de la cita.');
+        alert('No se pudo actualizar el estado de la cita.');
       }
-    } catch (err) {
-      alert('Error de conexión al actualizar el estado.');
+    } catch (e) {
+      alert('Error de conexión al actualizar la cita.');
     }
   }
 
-  function logout() {
-    localStorage.clear();
-    window.location.href = 'login-profesional.html';
-  }
-
-  // Carga inicial
-  cargarCitas();
-  </script>
+  // 5. Inicialización automática al cargar el DOM
+  document.addEventListener('DOMContentLoaded', () => {
+    cargarCitas();
+  });
+</script>
 </body>
 </html>

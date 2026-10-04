@@ -11,7 +11,7 @@ class CitaReadSerializer(serializers.ModelSerializer):
     profesional_nombre = serializers.SerializerMethodField()
     servicio_nombre = serializers.ReadOnlyField(source='id_servicio.nombre')
     sucursal_nombre = serializers.ReadOnlyField(source='id_sucursal.nombre_comercial')
-    precio = serializers.ReadOnlyField(source='id_servicio.precio_base')
+    precio = serializers.ReadOnlyField(source='id_servicio.precio')
 
     class Meta:
         model = Cita

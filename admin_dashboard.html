@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Administrativo - AgendApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #0f141c;
+      --card-bg: #161e29;
+      --card-border: #263344;
+      --accent-green: #0df2a6;
+      --accent-green-hover: #0ac787;
+      --accent-admin: #f59e0b;
+      --accent-blue: #38bdf8;
+      --text-main: #f3f4f6;
+      --text-muted: #94a3b8;
+      --input-bg: #0b0f15;
+      --input-border: #2d3b4e;
+      --danger: #ef4444;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; padding: 24px 32px; }
+
+    /* Navbar */
+    .navbar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--card-border); margin-bottom: 28px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand h1 { font-size: 22px; font-weight: 700; }
+    .brand h1 span { color: var(--accent-green); }
+    .badge-admin { background: rgba(245, 158, 11, 0.15); color: var(--accent-admin); border: 1px solid rgba(245, 158, 11, 0.3); padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+    .user-actions { display: flex; align-items: center; gap: 16px; }
+    .btn-logout { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .btn-logout:hover { background: var(--danger); color: white; }
+
+    /* Métricas */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .kpi-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; }
+    .kpi-card h3 { font-size: 13px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; font-weight: 600; }
+    .kpi-card .number { font-size: 28px; font-weight: 700; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--card-border); padding-bottom: 8px; overflow-x: auto; }
+    .tab-btn { background: transparent; border: none; color: var(--text-muted); padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+    .tab-btn:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.03); }
+    .tab-btn.active { background: var(--card-bg); color: var(--accent-green); border: 1px solid var(--card-border); }
+
+    /* Contenido */
+    .content-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 24px; }
+    .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .table-header h2 { font-size: 18px; font-weight: 600; }
+    .btn-create { background: var(--accent-green); color: #05140f; border: none; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+    .btn-create:hover { background: var(--accent-green-hover); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--card-border); }
+    th { background: var(--input-bg); color: var(--text-muted); font-size: 12px; text-transform: uppercase; }
+    tr:hover { background: rgba(255, 255, 255, 0.02); }
+    .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+    .badge-success { background: rgba(13, 242, 166, 0.15); color: var(--accent-green); }
+    .badge-danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+    .badge-info { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); }
+
+    /* Modales */
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 16px; z-index: 100; }
+    .modal-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; max-width: 580px; width: 100%; padding: 28px; max-height: 90vh; overflow-y: auto; }
+    .modal-box h3 { font-size: 18px; margin-bottom: 16px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group.full { grid-column: span 2; }
+    .form-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-main); padding: 10px 14px; border-radius: 8px; outline: none; font-size: 14px; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent-green); }
+
+    .dias-selector { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+    .dia-chip { display: flex; align-items: center; gap: 4px; background: var(--input-bg); border: 1px solid var(--input-border); padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .dia-chip input { width: auto; margin: 0; }
+
+    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .btn-secondary { background: transparent; border: 1px solid var(--card-border); color: var(--text-muted); padding: 8px 16px; border-radius: 8px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <header class="navbar">
+    <div class="brand">
+      <h1><span>Agend</span>App</h1>
+      <span class="badge-admin">Administrador</span>
+    </div>
+    <div class="user-actions">
+      <span id="adminInfo">Sesión: <strong>Administrador</strong></span>
+      <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
+    </div>
+  </header>
+
+  <!-- Métricas Rápidas -->
+  <section class="kpi-grid">
+    <div class="kpi-card">
+      <h3>Sucursales</h3>
+      <div class="number" id="kpi-locales">0</div>
+    </div>
+    <div class="kpi-card">
+      <h3>Profesionales</h3>
+      <div class="number" id="kpi-profesionales">0</div>
+    </div>
+    <div class="kpi-card">
+      <h3>Servicios Activos</h3>
+      <div class="number" id="kpi-servicios">0</div>
+    </div>
+    <div class="kpi-card">
+      <h3>Citas Registradas</h3>
+      <div class="number" id="kpi-citas" style="color: var(--accent-green);">0</div>
+    </div>
+  </section>
+
+  <!-- Pestañas -->
+  <nav class="tabs">
+    <button class="tab-btn active" onclick="switchTab(event, 'tab-profesionales')">💈 Profesionales y Horarios</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-servicios')">📋 Catálogo de Servicios</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-citas')">📅 Monitoreo de Citas</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-locales')">🏬 Locales / Sucursales</button>
+  </nav>
+
+  <!-- 1. TAB: PROFESIONALES -->
+  <section id="tab-profesionales" class="content-card tab-content">
+    <div class="table-header">
+      <h2>Profesionales y Horarios de Trabajo</h2>
+      <button class="btn-create" onclick="openModal('modal-profesional')">+ Alta de Profesional</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Profesional</th>
+          <th>Correo</th>
+          <th>Sucursal</th>
+          <th>Especialidad</th>
+          <th>Comisión</th>
+          <th>Horario de Atención</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody id="profesionales-body">
+        <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Cargando profesionales...</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 2. TAB: SERVICIOS -->
+  <section id="tab-servicios" class="content-card tab-content" style="display:none;">
+    <div class="table-header">
+      <h2>Catálogo de Servicios</h2>
+      <button class="btn-create" onclick="openModal('modal-servicio')">+ Nuevo Servicio</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Servicio</th>
+          <th>Sucursal</th>
+          <th>Precio Base</th>
+          <th>Duración</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody id="servicios-body">
+        <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Cargando servicios...</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 3. TAB: CITAS GLOBALES -->
+  <section id="tab-citas" class="content-card tab-content" style="display:none;">
+    <div class="table-header">
+      <h2>Todas las Citas del Sistema</h2>
+      <button class="btn-create" id="btn-actualizar-citas" onclick="actualizarCitasManual(this)">🔄 Actualizar</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Cliente</th>
+          <th>Servicio</th>
+          <th>Profesional</th>
+          <th>Fecha y Hora</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody id="citas-body">
+        <tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Cargando citas...</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 4. TAB: LOCALES -->
+  <section id="tab-locales" class="content-card tab-content" style="display:none;">
+    <div class="table-header">
+      <h2>Sucursales Registradas</h2>
+      <button class="btn-create" onclick="openModal('modal-local')">+ Nueva Sucursal</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre Comercial</th>
+          <th>RUT Empresa</th>
+          <th>Teléfono</th>
+          <th>Dirección</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody id="locales-body">
+        <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Cargando locales...</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- MODAL: ALTA DE PROFESIONAL + HORARIOS -->
+  <div id="modal-profesional" class="modal">
+    <div class="modal-box">
+      <h3>Registrar Profesional y Asignar Horarios</h3>
+      <form id="form-profesional" onsubmit="guardarProfesional(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre (*)</label>
+            <input type="text" id="pro-nombre" required placeholder="Carlos">
+          </div>
+          <div class="form-group">
+            <label>Apellido (*)</label>
+            <input type="text" id="pro-apellido" required placeholder="Valenzuela">
+          </div>
+          <div class="form-group full">
+            <label>Correo Electrónico (*)</label>
+            <input type="email" id="pro-correo" required placeholder="carlos@agendapp.cl">
+          </div>
+          <div class="form-group">
+            <label>Teléfono</label>
+            <input type="text" id="pro-telefono" placeholder="+56911223344">
+          </div>
+          <div class="form-group">
+            <label>Contraseña Provisoria (*)</label>
+            <input type="password" id="pro-password" required placeholder="••••••••">
+          </div>
+          <div class="form-group full">
+            <label>Sucursal de Atención (*)</label>
+            <select id="pro-local" required></select>
+          </div>
+          <div class="form-group">
+            <label>Especialidad</label>
+            <input type="text" id="pro-especialidad" placeholder="Barbero Master">
+          </div>
+          <div class="form-group">
+            <label>% Comisión</label>
+            <input type="number" id="pro-comision" step="0.01" min="0" max="100" value="0.00">
+          </div>
+
+          <div class="form-group full" style="border-top:1px solid var(--card-border); padding-top:14px; margin-top:6px;">
+            <label style="color:var(--accent-green); font-weight:700;">Días Laborales Habituales</label>
+            <div class="dias-selector">
+              <label class="dia-chip"><input type="checkbox" name="pro-dias" value="1" checked> Lun</label>
+              <label class="dia-chip"><input type="checkbox" name="pro-dias" value="2" checked> Mar</label>
+              <label class="dia-chip"><input type="checkbox" name="pro-dias" value="3" checked> Mié</label>
+              <label class="dia-chip"><input type="checkbox" name="pro-dias" value="4" checked> Jue</label>
+              <label class="dia-chip"><input type="checkbox" name="pro-dias" value="5" checked> Vie</label>
+              <label class="dia-chip"><input type="checkbox" name="pro-dias" value="6"> Sáb</label>
+              <label class="dia-chip"><input type="checkbox" name="pro-dias" value="0"> Dom</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Hora Entrada</label>
+            <input type="time" id="pro-hora-inicio" value="09:00" required>
+          </div>
+          <div class="form-group">
+            <label>Hora Salida</label>
+            <input type="time" id="pro-hora-fin" value="18:00" required>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('modal-profesional')">Cancelar</button>
+          <button type="submit" class="btn-create">Guardar Profesional</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: REGISTRAR SERVICIO -->
+  <div id="modal-servicio" class="modal">
+    <div class="modal-box">
+      <h3>Registrar Nuevo Servicio</h3>
+      <form id="form-servicio" onsubmit="guardarServicio(event)">
+        <div class="form-group">
+          <label>Sucursal (*)</label>
+          <select id="srv-local" required></select>
+        </div>
+        <div class="form-group">
+          <label>Nombre del Servicio (*)</label>
+          <input type="text" id="srv-nombre" required placeholder="Ej: Corte Degradado + Barba">
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Precio Base ($ CLP) (*)</label>
+            <input type="number" id="srv-precio" required min="0" step="500" placeholder="12000">
+          </div>
+          <div class="form-group">
+            <label>Duración (minutos) (*)</label>
+            <input type="number" id="srv-duracion" required min="5" step="5" value="45">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea id="srv-desc" rows="2" placeholder="Detalles o especificaciones..."></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('modal-servicio')">Cancelar</button>
+          <button type="submit" class="btn-create">Guardar Servicio</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: REGISTRAR LOCAL -->
+  <div id="modal-local" class="modal">
+    <div class="modal-box">
+      <h3>Registrar Sucursal</h3>
+      <form id="form-local" onsubmit="guardarLocal(event)">
+        <div class="form-group">
+          <label>Nombre Comercial (*)</label>
+          <input type="text" id="loc-nombre" required placeholder="AgendApp Providencia">
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>RUT Empresa (*)</label>
+            <input type="text" id="loc-rut" required placeholder="76123456-7">
+          </div>
+          <div class="form-group">
+            <label>Teléfono</label>
+            <input type="text" id="loc-telefono" placeholder="+5622334455">
+          </div>
+          <div class="form-group full">
+            <label>Correo Electrónico (*)</label>
+            <input type="email" id="loc-correo" required placeholder="contacto@agendapp.cl">
+          </div>
+          <div class="form-group full">
+            <label>Dirección</label>
+            <input type="text" id="loc-direccion" placeholder="Av. Providencia 1234, Local 2">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('modal-local')">Cancelar</button>
+          <button type="submit" class="btn-create">Guardar Sucursal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://127.0.0.1:8000/api';
+
+    // 1. Control de Acceso
+    const rawSession = localStorage.getItem('usuario') || localStorage.getItem('agendapp_user');
+    const session = JSON.parse(rawSession || '{}');
+    const esAdmin = session.rol === 'ADMIN' || session.id_rol === 1;
+
+    if (!rawSession || !esAdmin) {
+      alert('Acceso restringido: requiere perfil de Administrador.');
+      window.location.href = 'login_roles.html';
+    }
+
+    document.getElementById('adminInfo').innerHTML = `Sesión: <strong>${session.nombre || session.correo || 'Admin'}</strong>`;
+
+    function switchTab(e, tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+      e.currentTarget.classList.add('active');
+      document.getElementById(tabId).style.display = 'block';
+    }
+
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    const getHeaders = () => {
+      const token = localStorage.getItem('token_access');
+      const h = { 'Content-Type': 'application/json' };
+      if (token) h['Authorization'] = `Bearer ${token}`;
+      return h;
+    };
+
+    // 2. Fetch Inteligente para URLs de Django REST Framework
+    async function fetchSmart(endpoints) {
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(`${API_BASE}${ep}`, { headers: getHeaders() });
+          if (res.ok) {
+            const data = await res.json();
+            return { data: Array.isArray(data) ? data : (data.results || []), workingEndpoint: ep };
+          }
+        } catch (e) {}
+      }
+      return { data: [], workingEndpoint: endpoints[0] };
+    }
+
+    let cacheLocales = [];
+    let epLocales = '/catalogos/sucursales/';
+
+    // 3. Cargar Profesionales con sus horarios asignados
+   // 3. Cargar Profesionales con sus horarios y botón de eliminación
+    async function cargarProfesionales() {
+      const tbody = document.getElementById('profesionales-body');
+      try {
+        const res = await fetch(`${API_BASE}/personal/profesionales/`, { headers: getHeaders() });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+        const profesionales = Array.isArray(data) ? data : (data.results || []);
+        document.getElementById('kpi-profesionales').textContent = profesionales.length;
+
+        if (profesionales.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No hay profesionales registrados.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = profesionales.map(p => {
+          const proId = p.id_profesional ?? p.id;
+          const listaHorarios = (p.horarios && p.horarios.length > 0)
+            ? p.horarios.map(h => `${h.nombre_dia || 'Día'} (${(h.hora_inicio || '').slice(0,5)} - ${(h.hora_fin || '').slice(0,5)})`).join('<br>')
+            : '<span style="color:var(--text-muted);">Sin horarios asignados</span>';
+
+          const nom = p.nombre_completo || `${p.nombre || 'Especialista'} ${p.apellido || ''}`;
+          const sucursal = p.nombre_sucursal || 'Principal';
+
+          return `
+            <tr>
+              <td><strong>${nom}</strong></td>
+              <td>${p.correo || '-'}</td>
+              <td>${sucursal}</td>
+              <td>${p.especialidad || 'General'}</td>
+              <td>${p.porcentaje_comision || '0.00'}%</td>
+              <td style="font-size:12px; line-height:1.4;">${listaHorarios}</td>
+              <td><span class="badge badge-success">${p.estado_laboral || 'ACTIVO'}</span></td>
+              <td style="text-align: right;">
+                <button class="btn-logout" style="padding: 4px 8px; font-size: 11px; border-radius: 6px;" onclick="eliminarProfesional(${proId}, '${nom}')">
+                  🗑️ Eliminar
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8" style="color:var(--danger); text-align:center;">Error al cargar profesionales: ${err.message}</td></tr>`;
+      }
+    }
+
+    // Función para dar de baja o eliminar un profesional
+    async function eliminarProfesional(id, nombre) {
+      if (!confirm(`¿Estás seguro de que deseas eliminar al profesional "${nombre}" (#${id})?\n\nEsta acción eliminará su registro y sus horarios asignados.`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/personal/profesionales/${id}/`, {
+          method: 'DELETE',
+          headers: getHeaders()
+        });
+
+        if (res.status === 204 || res.ok) {
+          alert(`Profesional "${nombre}" eliminado con éxito.`);
+          await cargarProfesionales();
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          alert(`No se pudo eliminar el profesional:\n${JSON.stringify(errData, null, 2)}`);
+        }
+      } catch (err) {
+        console.error('Error al eliminar profesional:', err);
+        alert('Error de conexión al eliminar: ' + err.message);
+      }
+    }
+
+    // 4. Sincronización Integral del Dashboard
+    async function cargarTodo() {
+      // A. Cargar Profesionales
+      await cargarProfesionales();
+
+      // B. Cargar Sucursales
+      const resLoc = await fetchSmart(['/catalogos/sucursales/', '/catalogos/locales/', '/catalogos/sucursal/']);
+      cacheLocales = resLoc.data || [];
+      epLocales = resLoc.workingEndpoint;
+      document.getElementById('kpi-locales').textContent = cacheLocales.length;
+
+      document.getElementById('locales-body').innerHTML = cacheLocales.length ? cacheLocales.map(l => {
+        const nombre = l.nombre || l.nombre_comercial || 'Sucursal';
+        const rut = l.rut_empresa || l.rut || '-';
+        const estado = (l.activo === true || l.estado === true);
+        return `
+          <tr>
+            <td><strong>${nombre}</strong></td>
+            <td>${rut}</td>
+            <td>${l.telefono || '-'}</td>
+            <td>${l.direccion || '-'}</td>
+            <td><span class="badge ${estado ? 'badge-success' : 'badge-danger'}">${estado ? 'Activo' : 'Inactivo'}</span></td>
+          </tr>
+        `;
+      }).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Sin sucursales registradas.</td></tr>';
+
+      // C. Poblar Selects de Sucursales en Modales
+      const optsLoc = cacheLocales.map(l => {
+        const pk = l.id_sucursal ?? l.id_local ?? l.id ?? l.pk;
+        const nombre = l.nombre || l.nombre_comercial || `Sucursal #${pk}`;
+        return `<option value="${pk}">${nombre}</option>`;
+      }).join('');
+
+      const selSrv = document.getElementById('srv-local');
+      const selPro = document.getElementById('pro-local');
+      if (selSrv) selSrv.innerHTML = optsLoc;
+      if (selPro) selPro.innerHTML = optsLoc;
+
+      // D. Cargar Servicios
+      try {
+        const resSrv = await fetchSmart(['/catalogos/servicios/', '/catalogos/servicio/']);
+        const servicios = resSrv.data || [];
+        document.getElementById('kpi-servicios').textContent = servicios.length;
+
+        document.getElementById('servicios-body').innerHTML = servicios.length ? servicios.map(s => {
+          const locId = s.id_sucursal_id || s.id_sucursal;
+          const loc = cacheLocales.find(l => (l.id_sucursal ?? l.id_local ?? l.id) === locId);
+          const sucursalNombre = s.nombre_sucursal || (loc ? (loc.nombre || loc.nombre_comercial) : 'Sucursal');
+          const precio = s.precio ?? s.precio_base ?? 0;
+          const duracion = s.duracion_minutos ?? s.duracion_min ?? 0;
+
+          return `
+            <tr>
+              <td><strong>${s.nombre}</strong></td>
+              <td>${sucursalNombre}</td>
+              <td>$${Number(precio).toLocaleString('es-CL')}</td>
+              <td>${duracion} min</td>
+              <td><span class="badge badge-success">${s.activo !== false ? 'Activo' : 'Inactivo'}</span></td>
+            </tr>
+          `;
+        }).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Sin servicios registrados.</td></tr>';
+      } catch (errSrv) {
+        console.error('Error al cargar servicios:', errSrv);
+        document.getElementById('servicios-body').innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">Error al cargar servicios: ${errSrv.message}</td></tr>`;
+      }
+
+      // E. Cargar Citas
+      try {
+        const resCitas = await fetchSmart(['/reservas/citas/', '/reservas/cita/']);
+        const citas = resCitas.data || [];
+        document.getElementById('kpi-citas').textContent = citas.length;
+
+        const citasBody = document.getElementById('citas-body');
+        if (citasBody) {
+          citasBody.innerHTML = citas.length ? citas.map(c => {
+            const cliente = c.cliente_nombre || c.nombre_cliente || (c.id_cliente ? `Cliente #${c.id_cliente}` : 'Cliente');
+            const servicio = c.servicio_nombre || c.nombre_servicio || (c.id_servicio ? `Servicio #${c.id_servicio}` : 'Servicio');
+            const profesional = c.profesional_nombre || c.nombre_profesional || (c.id_profesional ? `Profesional #${c.id_profesional}` : 'Especialista');
+            const fechaStr = c.fecha_hora_inicio ? c.fecha_hora_inicio.replace('T', ' ').substring(0, 16) : '-';
+            const estado = c.estado || 'CONFIRMADA';
+
+            return `
+              <tr>
+                <td><strong>#${c.id_cita ?? c.id}</strong></td>
+                <td>${cliente}</td>
+                <td>${servicio}</td>
+                <td>${profesional}</td>
+                <td>${fechaStr}</td>
+                <td><span class="badge badge-info">${estado}</span></td>
+              </tr>
+            `;
+          }).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Sin citas registradas.</td></tr>';
+        }
+      } catch (errCitas) {
+        console.error('Error al cargar citas:', errCitas);
+      }
+    }
+
+    // 5. Guardar Profesional + Horarios
+    async function guardarProfesional(e) {
+      e.preventDefault();
+
+      const selectLocal = document.getElementById('pro-local');
+      const rawVal = selectLocal ? selectLocal.value : null;
+      const idSucursalSeleccionada = (rawVal && !isNaN(parseInt(rawVal))) ? parseInt(rawVal) : null;
+
+      if (!idSucursalSeleccionada) {
+        alert('Por favor selecciona una sucursal válida.');
+        return;
+      }
+
+      const comisionRaw = document.getElementById('pro-comision').value.replace(',', '.');
+      const payloadPro = {
+        nombre: document.getElementById('pro-nombre').value.trim(),
+        apellido: document.getElementById('pro-apellido').value.trim(),
+        correo_nuevo: document.getElementById('pro-correo').value.trim(),
+        telefono_nuevo: document.getElementById('pro-telefono').value.trim(),
+        password: document.getElementById('pro-password').value,
+        id_sucursal: idSucursalSeleccionada,
+        especialidad: document.getElementById('pro-especialidad').value.trim(),
+        porcentaje_comision: parseFloat(comisionRaw) || 0.00,
+        estado_laboral: 'ACTIVO'
+      };
+
+      try {
+        const resPro = await fetch(`${API_BASE}/personal/profesionales/`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify(payloadPro)
+        });
+
+        const dataPro = await resPro.json();
+
+        if (!resPro.ok) {
+          alert('Error al registrar profesional:\n' + JSON.stringify(dataPro, null, 2));
+          return;
+        }
+
+        const proId = dataPro.id_profesional ?? dataPro.id;
+        const horaInicio = document.getElementById('pro-hora-inicio').value;
+        const horaFin = document.getElementById('pro-hora-fin').value;
+        const fixTime = (t) => (t && t.length === 5) ? `${t}:00` : t;
+        const horaInicioFix = fixTime(horaInicio);
+        const horaFinFix = fixTime(horaFin);
+
+        const diasSeleccionados = Array.from(
+          document.querySelectorAll('input[name="pro-dias"]:checked')
+        ).map(cb => parseInt(cb.value));
+
+        for (const dia of diasSeleccionados) {
+          const payloadHorario = {
+            id_profesional: proId,
+            dia_semana: dia,
+            hora_inicio: horaInicioFix,
+            hora_fin: horaFinFix
+          };
+
+          const resHor = await fetch(`${API_BASE}/personal/horarios/`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(payloadHorario)
+          });
+
+          if (!resHor.ok) {
+            const errHor = await resHor.json().catch(() => ({}));
+            console.error(`Fallo horario día ${dia}:`, errHor);
+          }
+        }
+
+        closeModal('modal-profesional');
+        document.getElementById('form-profesional').reset();
+        await cargarProfesionales();
+        alert('¡Profesional y horarios registrados con éxito!');
+
+      } catch (err) {
+        alert('Fallo en la operación: ' + err.message);
+      }
+    }
+
+    // 6. Guardar Servicio
+    async function guardarServicio(e) {
+      e.preventDefault();
+
+      const selectLocal = document.getElementById('srv-local');
+      const rawVal = selectLocal ? selectLocal.value : null;
+      const idSucursal = (rawVal && !isNaN(parseInt(rawVal))) ? parseInt(rawVal) : null;
+
+      if (!idSucursal) {
+        alert('Por favor selecciona una sucursal válida.');
+        return;
+      }
+
+      const payload = {
+        id_sucursal: idSucursal,
+        nombre: document.getElementById('srv-nombre').value.trim(),
+        descripcion: document.getElementById('srv-desc').value.trim(),
+        duracion_minutos: parseInt(document.getElementById('srv-duracion').value),
+        precio: parseFloat(document.getElementById('srv-precio').value),
+        activo: true
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/catalogos/servicios/`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok) {
+          closeModal('modal-servicio');
+          document.getElementById('form-servicio').reset();
+          await cargarTodo();
+          alert('¡Servicio registrado con éxito!');
+        } else {
+          alert('Error devuelto por el backend:\n' + JSON.stringify(data, null, 2));
+        }
+      } catch (err) {
+        alert('Fallo de conexión: ' + err.message);
+      }
+    }
+
+    // 7. Guardar Sucursal
+    async function guardarLocal(e) {
+      e.preventDefault();
+      const payload = {
+        nombre: document.getElementById('loc-nombre').value.trim(),
+        rut_empresa: document.getElementById('loc-rut').value.trim(),
+        telefono: document.getElementById('loc-telefono').value.trim(),
+        correo: document.getElementById('loc-correo').value.trim(),
+        direccion: document.getElementById('loc-direccion').value.trim(),
+        activo: true
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}${epLocales}`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          closeModal('modal-local');
+          document.getElementById('form-local').reset();
+          await cargarTodo();
+          alert('¡Sucursal creada exitosamente!');
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          alert('Error al registrar la sucursal:\n' + JSON.stringify(errData, null, 2));
+        }
+      } catch (err) {
+        alert('Error en la petición: ' + err.message);
+      }
+    }
+
+// Actualización manual de citas con feedback visual y anti-caché
+    async function actualizarCitasManual(btn) {
+      const textoOriginal = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Actualizando...';
+      btn.style.opacity = '0.7';
+
+      const tbody = document.getElementById('citas-body');
+      if (tbody) {
+        tbody.style.opacity = '0.5';
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/reservas/citas/?_t=${Date.now()}`, {
+          headers: getHeaders()
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const citas = Array.isArray(data) ? data : (data.results || []);
+          document.getElementById('kpi-citas').textContent = citas.length;
+
+          if (tbody) {
+            tbody.innerHTML = citas.length ? citas.map(c => {
+              const cliente = c.cliente_nombre || c.nombre_cliente || (c.id_cliente ? `Cliente #${c.id_cliente}` : 'Cliente');
+              const servicio = c.servicio_nombre || c.nombre_servicio || (c.id_servicio ? `Servicio #${c.id_servicio}` : 'Servicio');
+              const profesional = c.profesional_nombre || c.nombre_profesional || (c.id_profesional ? `Profesional #${c.id_profesional}` : 'Especialista');
+              const fechaStr = c.fecha_hora_inicio ? c.fecha_hora_inicio.replace('T', ' ').substring(0, 16) : '-';
+              const estado = c.estado || 'CONFIRMADA';
+
+              return `
+                <tr>
+                  <td><strong>#${c.id_cita ?? c.id}</strong></td>
+                  <td>${cliente}</td>
+                  <td>${servicio}</td>
+                  <td>${profesional}</td>
+                  <td>${fechaStr}</td>
+                  <td><span class="badge badge-info">${estado}</span></td>
+                </tr>
+              `;
+            }).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Sin citas registradas.</td></tr>';
+          }
+        }
+      } catch (err) {
+        console.error('Error al actualizar citas:', err);
+      } finally {
+        if (tbody) tbody.style.opacity = '1';
+        btn.disabled = false;
+        btn.innerHTML = '✅ Actualizado';
+        btn.style.opacity = '1';
+        setTimeout(() => {
+          btn.innerHTML = textoOriginal;
+        }, 1200);
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = 'login_roles.html';
+    }
+
+    // Inicializar dashboard
+    cargarTodo();
+  </script>
+</body>
+</html>
