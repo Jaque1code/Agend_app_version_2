@@ -42,7 +42,7 @@
 
   try {
     // Apuntamos al endpoint existente en tu backend:
-    const res = await fetch('http://127.0.0.1:8000/api/auth/login/', {
+    const res = await fetch('https://agend-app-version-2.onrender.com/api/auth/login/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -81,7 +81,7 @@
       errorMsg.style.display = 'block';
     }
   } catch (err) {
-    errorMsg.textContent = 'Error de conexión en el backend (http://127.0.0.1:8000).';
+    errorMsg.textContent = 'Error de conexión en el backend (https://agend-app-version-2.onrender.com).';
     errorMsg.style.display = 'block';
    }
   }

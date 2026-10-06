@@ -118,7 +118,7 @@
       const clienteId = usuario.id_usuario || usuario.id;
 
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/reservas/citas/?cliente=${clienteId}`);
+        const res = await fetch(`https://agend-app-version-2.onrender.com/api/reservas/citas/?cliente=${clienteId}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data = await res.json();
